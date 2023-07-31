@@ -1,0 +1,22 @@
+name: Container Deployment
+
+on:
+  pull_request_target:
+    branches:
+      - main
+    types:
+      - closed
+
+    workflow_dispatch:
+
+jobs:
+  is_merged:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+
+      - name: Run build script
+        run: $GITHUB_WORKSPACE/scripts/build_script/build.sh -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }} -f $GITHUB_WORKSPACE/docker-compose.main.yaml -t latest
