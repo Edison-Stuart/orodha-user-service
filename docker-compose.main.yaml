@@ -2,7 +2,7 @@ version: "3"
 
 services:
   orodha-user-server:
-    hostname: user-service-server
+    hostname: user-service
     container_name: user-service
     image: ${DOCKER_USERNAME}/orodha-user-service:${TAG}
     build:
