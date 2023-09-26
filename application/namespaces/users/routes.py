@@ -17,20 +17,26 @@ user_ns = Namespace(
 
 APPCONFIG = obtain_config()
 
+def get_token_from_header(header):
+    """
+    Accepts a request header and gets the auth token from it.
+
+    Args:
+        header(request.headers): A dictionary containing information including our JWT token.
+
+    Returns:
+        token(str): Our token string which can be decoded via keycloak to get our user info.
+    """
+    token = header.get("Authorization", "").lstrip("Bearer").strip()
+    return token
+
 # class SomeResource(Resource):
 @main_ns.route('/user')
 class Users(Resource):
     def get(self):
-        keycloak_client = OrodhaKeycloakClient(
-            server_url=APPCONFIG.get("keycloak_server_url"),
-            realm_name=APPCONFIG.get("keycloak_realm_name"),
-            client_id=APPCONFIG.get("keycloak_client_id"),
-            client_secret_key=APPCONFIG.get("keycloak_client_secret_key"),
-         )
         request_token = request.headers.get("access_token")
         return get_user_with_token(request_token)
 
-        return "Hello World"
     def post(self):
         keycloak_client = OrodhaKeycloakClient(
             server_url=APPCONFIG.get("keycloak_server_url"),
