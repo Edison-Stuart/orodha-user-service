@@ -1,19 +1,16 @@
 from flask_restx import Namespace, Resource
-from flask import request
-from orodha_keycloak import OrodhaKeycloakClient
 from application.config import obtain_config
 from application.namespaces.users.controllers import (
-    get_user_with_token,
-    post_new_user_data,
-    put_user_with_token,
-    delete_user_with_token
+    get_user,
+    post_user,
+    delete_user
 )
 
 user_ns = Namespace(
     "users",
     description='User related operations',
     path="/user"
-    )
+)
 
 APPCONFIG = obtain_config()
 
@@ -30,33 +27,44 @@ def get_token_from_header(header):
     token = header.get("Authorization", "").lstrip("Bearer").strip()
     return token
 
-# class SomeResource(Resource):
-@main_ns.route('/user')
-class Users(Resource):
+@user_ns.route('/')
+class UserApi(Resource):
+    """
+    Class that contains routes for GET, POST, and DELETE requests
+    that are sent to the user namespace via /user/
+    """
     def get(self):
-        request_token = request.headers.get("access_token")
-        return get_user_with_token(request_token)
+        """
+        Method which gets a user from the access token in the headers
+
+        Returns:
+            user_data(dict): The user data from our database that
+                is associated with the token given to route.
+        """
+        unstripped_token = user_ns.payload.headers["access_token"]
+        request_token = get_token_from_header(unstripped_token)
+        user_data = get_user(request_token)
+        return user_data
 
     def post(self):
-        keycloak_client = OrodhaKeycloakClient(
-            server_url=APPCONFIG.get("keycloak_server_url"),
-            realm_name=APPCONFIG.get("keycloak_realm_name"),
-            client_id=APPCONFIG.get("keycloak_client_id"),
-            client_secret_key=APPCONFIG.get("keycloak_client_secret_key"),
-         )
+        """
+        Method which adds a user to keycloak and our database using form data from the request.
 
-    def put(self):
-        keycloak_client = OrodhaKeycloakClient(
-            server_url=APPCONFIG.get("keycloak_server_url"),
-            realm_name=APPCONFIG.get("keycloak_realm_name"),
-            client_id=APPCONFIG.get("keycloak_client_id"),
-            client_secret_key=APPCONFIG.get("keycloak_client_secret_key"),
-         )
+        Returns:
+            user_data(dict): The user data for the new user created.
+        """
+        user_data = post_user(user_ns.payload)
+        return user_data
 
     def delete(self):
-        keycloak_client = OrodhaKeycloakClient(
-            server_url=APPCONFIG.get("keycloak_server_url"),
-            realm_name=APPCONFIG.get("keycloak_realm_name"),
-            client_id=APPCONFIG.get("keycloak_client_id"),
-            client_secret_key=APPCONFIG.get("keycloak_client_secret_key"),
-         )
+        """
+        Method which deletes a given user from keycloak and our database
+        using the access token from keycloak.
+
+        Returns:
+            deleted_id(str): The id of the deleted user
+        """
+        unstripped_token = user_ns.payload.headers["access_token"]
+        request_token = get_token_from_header(unstripped_token)
+        deleted_id = delete_user(request_token)
+        return deleted_id

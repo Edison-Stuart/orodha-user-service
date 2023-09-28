@@ -1,6 +1,5 @@
 '''Configuration file that pulls config from the environment'''
 import configparser
-import os
 
 def obtain_config():
     '''
