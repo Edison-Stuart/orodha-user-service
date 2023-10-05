@@ -1,6 +1,6 @@
 from flask import Flask, Blueprint
-from .namespaces import main_ns, user_ns
-from .config import configure_namespaces
+from application.namespaces import main_ns, user_ns
+from application.config import configure_namespaces
 from application.namespaces.users.db import get_db_connection
 
 API_VERSION="v1"
@@ -11,7 +11,6 @@ def create_base_app() -> Flask:
     Returns:
         app: Our main flask app with our api and blueprints linked.
     """
-
     app = Flask(__name__, instance_relative_config=False)
     blueprint = Blueprint("Home", __name__)
 

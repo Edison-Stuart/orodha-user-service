@@ -10,7 +10,7 @@ def get_mongo_url() -> str:
     db_password = APPCONFIG['database_config']['DBPASSWORD']
     db_name = APPCONFIG['database_config']['DBNAME']
     db_host = APPCONFIG['database_config']['HOSTNAME']
-    db_ports = APPCONFIG['database_config']['PORTS']
+    db_ports = APPCONFIG['database_config']['DBPORTS']
 
     return f'mongodb://{db_user}:{db_password}@{db_host}:{db_ports}/{db_name}'
 

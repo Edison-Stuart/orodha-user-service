@@ -1,9 +1,13 @@
 from flask_restx import Namespace, Resource
-from application.config import obtain_config
 from application.namespaces.users.controllers import (
     get_user,
     post_user,
     delete_user
+)
+from application.namespaces.users.exceptions import (
+    OrodhaBadIdError,
+    OrodhaBadRequestError,
+    OrodhaNotFoundError
 )
 
 user_ns = Namespace(
@@ -12,19 +16,17 @@ user_ns = Namespace(
     path="/user"
 )
 
-APPCONFIG = obtain_config()
-
-def get_token_from_header(header):
+def get_token_from_header(headers):
     """
     Accepts a request header and gets the auth token from it.
 
     Args:
-        header(request.headers): A dictionary containing information including our JWT token.
+        headers(request.headers): A dictionary containing information including our JWT token.
 
     Returns:
         token(str): Our token string which can be decoded via keycloak to get our user info.
     """
-    token = header.get("Authorization", "").lstrip("Bearer").strip()
+    token = headers.get("Authorization", "").lstrip("Bearer").strip()
     return token
 
 @user_ns.route('/')
@@ -41,10 +43,15 @@ class UserApi(Resource):
             user_data(dict): The user data from our database that
                 is associated with the token given to route.
         """
-        unstripped_token = user_ns.payload.headers["access_token"]
-        request_token = get_token_from_header(unstripped_token)
-        user_data = get_user(request_token)
-        return user_data
+        try:
+            request_token = get_token_from_header(user_ns.payload.headers)
+            user_data = get_user(request_token)
+            return user_data
+        except (
+            OrodhaBadIdError,
+            OrodhaNotFoundError
+        ) as err:
+            user_ns.abort(err.status_code, err.message)
 
     def post(self):
         """
@@ -53,8 +60,11 @@ class UserApi(Resource):
         Returns:
             user_data(dict): The user data for the new user created.
         """
-        user_data = post_user(user_ns.payload)
-        return user_data
+        try:
+            user_data = post_user(user_ns.payload)
+            return user_data
+        except OrodhaBadRequestError as err:
+            user_ns.abort(err.status_code, err.message)
 
     def delete(self):
         """
@@ -64,7 +74,12 @@ class UserApi(Resource):
         Returns:
             deleted_id(str): The id of the deleted user
         """
-        unstripped_token = user_ns.payload.headers["access_token"]
-        request_token = get_token_from_header(unstripped_token)
-        deleted_id = delete_user(request_token)
-        return deleted_id
+        try:
+            request_token = get_token_from_header(user_ns.payload.headers)
+            deleted_id = delete_user(request_token)
+            return deleted_id
+        except (
+            OrodhaNotFoundError,
+            OrodhaBadRequestError
+        ) as err:
+            user_ns.abort(err.status_code, err.message)

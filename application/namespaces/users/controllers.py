@@ -1,6 +1,20 @@
 from orodha_keycloak import OrodhaKeycloakClient
 from application.config import obtain_config
 from application.namespaces.users.models import User
+from keycloak import KeycloakGetError
+from mongoengine import LookUpError as MongoLookupError
+from mongoengine import (
+    MultipleObjectsReturned,
+    ValidationError,
+    FieldDoesNotExist,
+    DoesNotExist,
+    OperationError
+)
+from application.namespaces.users.exceptions import (
+    OrodhaBadIdError,
+    OrodhaBadRequestError,
+    OrodhaNotFoundError
+)
 
 APPCONFIG = obtain_config()
 
@@ -35,10 +49,10 @@ def _create_keycloak_client():
             keycloak more uniform for the service.
     """
     return OrodhaKeycloakClient(
-        server_url=APPCONFIG["keycloak_server_url"],
-        realm_name=APPCONFIG["keycloak_realm_name"],
-        client_id=APPCONFIG["keycloak_client_id"],
-        client_secret_key=APPCONFIG["keycloak_client_secret_key"]
+        server_url=APPCONFIG["keycloak_config"]["keycloak_server_url"],
+        realm_name=APPCONFIG["keycloak_config"]["keycloak_realm_name"],
+        client_id=APPCONFIG["keycloak_config"]["keycloak_client_id"],
+        client_secret_key=APPCONFIG["keycloak_config"]["keycloak_client_secret_key"]
     )
 
 def get_user(token):
@@ -51,10 +65,20 @@ def get_user(token):
     Returns:
         user(dict): A dictionary containing the data of the requested user.
     """
-    keycloak_client = _create_keycloak_client()
-    keycloak_user = keycloak_client.get_user(token=token)
-    user = User.objects.get(keycloak_id=keycloak_user.get("id"))
-    return user
+    try:
+        keycloak_client = _create_keycloak_client()
+        keycloak_user = keycloak_client.get_user(token=token)
+        user = User.objects.get(keycloak_id=keycloak_user.get("id"))
+        return user
+    except (
+        KeycloakGetError,
+    ) as err:
+        raise OrodhaBadIdError(err.message)
+    except (
+        MultipleObjectsReturned,
+        DoesNotExist
+    ) as err:
+        raise OrodhaNotFoundError(err.message)
 
 def post_user(payload):
     """
@@ -62,30 +86,36 @@ def post_user(payload):
 
     Args:
         payload(dict): The dictionary of arguments that was
-            sent in via post data from our post route.
+            sent in via body data from our post route.
 
     Returns:
         user_dict(dict): A dictionary containing the data of the new user that was created.
     """
-    keycloak_client = _create_keycloak_client()
+    try:
+        keycloak_client = _create_keycloak_client()
 
-    user_id = keycloak_client.add_user(
-        email=payload.get("email"),
-        username=payload.get("username"),
-        firstName=payload.get("firstName"),
-        lastName=payload.get("lastName"),
-        password=payload.get("password")
-    )
-    user_dict = {
-        "email": payload.get("email"),
-        "username": payload.get("username"),
-        "firstName": payload.get("firstName"),
-        "lastName": payload.get("lastName"),
-        "keycloak_id": user_id
-    }
-    _add_user_to_database(user_dict)
+        user_id = keycloak_client.add_user(
+            email=payload.get("email"),
+            username=payload.get("username"),
+            firstName=payload.get("firstName"),
+            lastName=payload.get("lastName"),
+            password=payload.get("password")
+        )
+        user_dict = {
+            "email": payload.get("email"),
+            "username": payload.get("username"),
+            "firstName": payload.get("firstName"),
+            "lastName": payload.get("lastName"),
+            "keycloak_id": user_id
+        }
+        _add_user_to_database(user_dict)
 
-    return user_dict
+        return user_dict
+    except (
+        ValidationError,
+        FieldDoesNotExist,
+    ) as err:
+        raise OrodhaBadRequestError(message=err.message)
 
 def delete_user(token):
     """
@@ -97,10 +127,18 @@ def delete_user(token):
     Returns:
         user_id(str): The user_id of the now deleted user.
     """
-    keycloak_client = _create_keycloak_client()
+    try:
+        keycloak_client = _create_keycloak_client()
 
-    user_id = keycloak_client.get_user(token=token).get("id")
-    _delete_user_from_database(user_id)
-    keycloak_client.delete_user(user_id)
+        user_id = keycloak_client.get_user(token=token).get("id")
+        _delete_user_from_database(user_id)
+        keycloak_client.delete_user(user_id)
 
-    return user_id
+        return user_id
+    except DoesNotExist as err:
+        raise OrodhaNotFoundError(err.message)
+    except (
+        ValidationError,
+        OperationError
+    ) as err:
+        raise OrodhaBadRequestError(err.message)

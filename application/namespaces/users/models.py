@@ -6,5 +6,5 @@ class User(Document):
     firstName = StringField(required=True)
     lastName = StringField(required=True)
     username = StringField(required=True)
-    email = StringField(required=False)
     keycloak_id = StringField(required=True)
+    email = StringField(required=False)
