@@ -1,4 +1,4 @@
-from flask_restx import Namespace, Resource
+from flask_restx import Namespace, Resource, fields
 from application.namespaces.users.controllers import (
     get_user,
     post_user,
@@ -15,6 +15,22 @@ user_ns = Namespace(
     description='User related operations',
     path="/user"
 )
+
+user_creation_model = user_ns.model("User Input", {
+    "email": fields.String(required=False),
+    "username": fields.String(required=True),
+    "firstName": fields.String(required=True),
+    "lastName": fields.String(required=True),
+    "password": fields.String(required=True),
+})
+
+user_response_model = user_ns.model("User Response", {
+    "email": fields.String(required=False),
+    "username": fields.String(required=True),
+    "firstName": fields.String(required=True),
+    "lastName": fields.String(required=True),
+    "id": fields.String(required=True, attribute='keycloak_id'),
+})
 
 def get_token_from_header(headers):
     """
@@ -35,6 +51,7 @@ class UserApi(Resource):
     Class that contains routes for GET, POST, and DELETE requests
     that are sent to the user namespace via /user/
     """
+    @user_ns.marshal_with(user_response_model)
     def get(self):
         """
         Method which gets a user from the access token in the headers
@@ -53,6 +70,8 @@ class UserApi(Resource):
         ) as err:
             user_ns.abort(err.status_code, err.message)
 
+    @user_ns.expect(user_creation_model, validate=True)
+    @user_ns.marshal_with(user_response_model)
     def post(self):
         """
         Method which adds a user to keycloak and our database using form data from the request.
