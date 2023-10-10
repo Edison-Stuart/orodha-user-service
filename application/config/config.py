@@ -1,14 +1,14 @@
 '''Configuration file that pulls config from the environment'''
 import configparser
 import os
-from application.config.exceptions import VariableNotPresent
+import warnings
 
 def _get_environment_variables(*required_variables: str) -> dict:
     """
     Helper function which looks to the environment for certain named variables.
 
     Args:
-        required_variables(tuple[str, ..., ...]): These are a list of positional arguments which
+        required_variables(tuple[str, ...]): These are a list of positional arguments which
             are expected to be strings. These args are the target variables that we are looking for.
 
     Raises:
@@ -23,7 +23,7 @@ def _get_environment_variables(*required_variables: str) -> dict:
     for var in required_variables:
         vars_out[var] = os.environ.get(var)
         if vars_out[var] is None:
-            raise VariableNotPresent(message=f"Environment variable: {var} is set to None")
+            warnings.warn(f"Environment variable: {var} is set to None", UserWarning)
     return vars_out
 
 
@@ -38,21 +38,23 @@ def obtain_config() -> configparser.ConfigParser:
     '''
     config = configparser.ConfigParser()
     environment_vars = _get_environment_variables(
-        "keycloak_server_url",
-        "keycloak_realm_name",
-        "keycloak_client_id",
-        "keycloak_client_secret_key",
+        "KEYCLOAK_SERVER_URL",
+        "KEYCLOAK_REALM_NAME",
+        "KEYCLOAK_CLIENT_ID",
+        "KEYCLOAK_CLIENT_SECRET_KEY",
         "DBUSER",
         "DBPASSWORD",
+        "DBNAME",
         "DBHOSTNAME",
-        "DBPORTS"
+        "DBPORTS",
+        "HOSTNAME"
     )
 
     config["keycloak_config"] = {
-        "keycloak_server_url": environment_vars["keycloak_server_url"],
-        "keycloak_realm_name": environment_vars["keycloak_realm_name"],
-        "keycloak_client_id": environment_vars["keycloak_client_id"],
-        "keycloak_client_secret_key": environment_vars["keycloak_client_secret_key"]
+        "KEYCLOAK_SERVER_URL": environment_vars["KEYCLOAK_SERVER_URL"],
+        "KEYCLOAK_REALM_NAME": environment_vars["KEYCLOAK_REALM_NAME"],
+        "KEYCLOAK_CLIENT_ID": environment_vars["KEYCLOAK_CLIENT_ID"],
+        "KEYCLOAK_CLIENT_SECRET_KEY": environment_vars["KEYCLOAK_CLIENT_SECRET_KEY"]
     }
     config["database_config"] = {
         "DBUSER": environment_vars["DBUSER"],
@@ -60,5 +62,6 @@ def obtain_config() -> configparser.ConfigParser:
         "DBNAME": environment_vars["DBNAME"],
         "DBHOSTNAME": environment_vars["DBHOSTNAME"],
         "DBPORTS": environment_vars["DBPORTS"],
+        "HOSTNAME": environment_vars["HOSTNAME"],
     }
     return config

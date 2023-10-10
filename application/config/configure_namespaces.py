@@ -11,7 +11,7 @@ def configure_namespaces(blueprint: Blueprint, *namespaces):
     '''
     api = Api(
         blueprint,
-        title="Orodha List Service"
+        title="Orodha User Service"
     )
     if namespaces:
         for namespace in namespaces:

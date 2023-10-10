@@ -2,7 +2,6 @@ from orodha_keycloak import OrodhaKeycloakClient
 from application.config import obtain_config
 from application.namespaces.users.models import User
 from keycloak import KeycloakGetError
-from mongoengine import LookUpError as MongoLookupError
 from mongoengine import (
     MultipleObjectsReturned,
     ValidationError,
@@ -49,18 +48,19 @@ def _create_keycloak_client():
             keycloak more uniform for the service.
     """
     return OrodhaKeycloakClient(
-        server_url=APPCONFIG["keycloak_config"]["keycloak_server_url"],
-        realm_name=APPCONFIG["keycloak_config"]["keycloak_realm_name"],
-        client_id=APPCONFIG["keycloak_config"]["keycloak_client_id"],
-        client_secret_key=APPCONFIG["keycloak_config"]["keycloak_client_secret_key"]
+        server_url=APPCONFIG["keycloak_config"]["KEYCLOAK_SERVER_URL"],
+        realm_name=APPCONFIG["keycloak_config"]["KEYCLOAK_REALM_NAME"],
+        client_id=APPCONFIG["keycloak_config"]["KEYCLOAK_CLIENT_ID"],
+        client_secret_key=APPCONFIG["keycloak_config"]["KEYCLOAK_CLIENT_SECRET_KEY"]
     )
 
-def get_user(token):
+def get_user(token, user_id):
     """
     Function that takes a token and finds the user if any in our database associated with it.
 
     Args:
-        token(str): The keycloak token obtained from the headers of the get request.
+        token(str): The token passed from the UserApi route which helps us identify user auth level.
+        user_id(str): The user id that is associated with the user that we want to get.
 
     Returns:
         user(dict): A dictionary containing the data of the requested user.
@@ -117,12 +117,13 @@ def post_user(payload):
     ) as err:
         raise OrodhaBadRequestError(message=err.message)
 
-def delete_user(token):
+def delete_user(token, user_id):
     """
     Function which deletes a given user from our database and from keycloak.
 
     Args:
-        token(str): The keycloak token that is associated with the user that we want to delete.
+        token(str): The token passed from the UserApi route which helps us identify user auth level.
+        user_id(str): The user id that is associated with the user that we want to delete.
 
     Returns:
         user_id(str): The user_id of the now deleted user.
