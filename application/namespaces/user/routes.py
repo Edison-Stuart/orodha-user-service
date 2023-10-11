@@ -1,37 +1,42 @@
+# pylint: disable=no-self-use
+"""
+Module which contains the flask restx routes for the user service api.
+"""
+from flask import request
 from flask_restx import Namespace, Resource, fields
-from application.namespaces.users.controllers import (
-    get_user,
-    post_user,
-    delete_user
-)
-from application.namespaces.users.exceptions import (
+from application.namespaces.user.exceptions import (
     OrodhaBadIdError,
     OrodhaBadRequestError,
     OrodhaNotFoundError,
-    OrodhaForbiddenError
+    OrodhaForbiddenError,
+)
+import application.namespaces.user.controllers
+
+user_ns = Namespace("users", description="User related operations")
+
+user_creation_model = user_ns.model(
+    "User Input",
+    {
+        "email": fields.String(required=False),
+        "username": fields.String(required=True),
+        "firstName": fields.String(required=True),
+        "lastName": fields.String(required=True),
+        "password": fields.String(required=True),
+    },
 )
 
-user_ns = Namespace(
-    "users",
-    description='User related operations',
-    path="/user"
+user_response_model = user_ns.model(
+    "User Response",
+    {
+        "keycloak_id": fields.String(required=False),
+        "email": fields.String(required=False),
+        "username": fields.String(required=True),
+        "firstName": fields.String(required=True),
+        "lastName": fields.String(required=True),
+        "id": fields.String(required=True, attribute="_id"),
+    },
 )
 
-user_creation_model = user_ns.model("User Input", {
-    "email": fields.String(required=False),
-    "username": fields.String(required=True),
-    "firstName": fields.String(required=True),
-    "lastName": fields.String(required=True),
-    "password": fields.String(required=True),
-})
-
-user_response_model = user_ns.model("User Response", {
-    "email": fields.String(required=False),
-    "username": fields.String(required=True),
-    "firstName": fields.String(required=True),
-    "lastName": fields.String(required=True),
-    "id": fields.String(required=True, attribute='keycloak_id'),
-})
 
 def get_token_from_header(headers):
     """
@@ -46,12 +51,14 @@ def get_token_from_header(headers):
     token = headers.get("Authorization", "").lstrip("Bearer").strip()
     return token
 
+
 @user_ns.route("")
 class UsersApi(Resource):
     """
     Class that contains a route for the POST request
     that is sent to the user namespace via /user
     """
+
     @user_ns.expect(user_creation_model, validate=True)
     @user_ns.marshal_with(user_response_model)
     def post(self):
@@ -62,30 +69,39 @@ class UsersApi(Resource):
             user_data(dict): The user data for the new user created.
         """
         try:
-            user_data = post_user(user_ns.payload)
-            return user_data
+            user_data = application.namespaces.user.controllers.post_user(
+                user_ns.payload
+            )
         except OrodhaBadRequestError as err:
             user_ns.abort(err.status_code, err.message)
 
-@user_ns.route('/<string: user_id>')
+        return user_data
+
+
+@user_ns.route("/<user_id>")
 class UserApi(Resource):
     """
     Class that contains routes for GET, POST, and DELETE requests
     that are sent to the user namespace via /user/
     """
+
     @user_ns.marshal_with(user_response_model)
     def get(self, user_id):
         """
         Method which gets a user from the access token in the headers
+
+        Args:
+            user_id(str): The user_id passed into our route and we are targeting to get
 
         Returns:
             user_data(dict): The user data from our database that
                 is associated with the token given to route.
         """
         try:
-            request_token = get_token_from_header(user_ns.payload.headers)
-            user_data = get_user(request_token, user_id)
-            return user_data
+            request_token = get_token_from_header(request.headers)
+            user_data = application.namespaces.user.controllers.get_user(
+                request_token, user_id
+            )
         except (
             OrodhaNotFoundError,
             OrodhaBadIdError,
@@ -93,21 +109,29 @@ class UserApi(Resource):
         ) as err:
             user_ns.abort(err.status_code, err.message)
 
+        return user_data
+
     def delete(self, user_id):
         """
         Method which deletes a given user from keycloak and our database
         using the access token from keycloak.
 
+        Args:
+            user_id(str): The user_id passed into our route and we are targeting for deletion.
+
         Returns:
             deleted_id(str): The id of the deleted user
         """
         try:
-            request_token = get_token_from_header(user_ns.payload.headers)
-            deleted_id = delete_user(request_token, user_id)
-            return deleted_id
+            request_token = get_token_from_header(request.headers)
+            deleted_id = application.namespaces.user.controllers.delete_user(
+                request_token, user_id
+            )
         except (
             OrodhaNotFoundError,
             OrodhaBadRequestError,
             OrodhaForbiddenError,
         ) as err:
             user_ns.abort(err.status_code, err.message)
+
+        return deleted_id

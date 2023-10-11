@@ -21,9 +21,10 @@ def _get_environment_variables(*required_variables: str) -> dict:
     """
     vars_out = {}
     for var in required_variables:
-        vars_out[var] = os.environ.get(var)
+        vars_out[var] = os.environ.get(var.upper())
         if vars_out[var] is None:
-            warnings.warn(f"Environment variable: {var} is set to None", UserWarning)
+            warnings.warn(f"Environment variable: {var.upper()} is set to None", UserWarning)
+            vars_out[var] = ""
     return vars_out
 
 
@@ -38,30 +39,28 @@ def obtain_config() -> configparser.ConfigParser:
     '''
     config = configparser.ConfigParser()
     environment_vars = _get_environment_variables(
-        "KEYCLOAK_SERVER_URL",
-        "KEYCLOAK_REALM_NAME",
-        "KEYCLOAK_CLIENT_ID",
-        "KEYCLOAK_CLIENT_SECRET_KEY",
-        "DBUSER",
-        "DBPASSWORD",
-        "DBNAME",
-        "DBHOSTNAME",
-        "DBPORTS",
-        "HOSTNAME"
+        "keycloak_server_url",
+        "keycloak_realm_name",
+        "keycloak_client_id",
+        "keycloak_client_secret_key",
+        "dbuser",
+        "dbpassword",
+        "dbname",
+        "dbhostname",
+        "dbports",
     )
 
     config["keycloak_config"] = {
-        "KEYCLOAK_SERVER_URL": environment_vars["KEYCLOAK_SERVER_URL"],
-        "KEYCLOAK_REALM_NAME": environment_vars["KEYCLOAK_REALM_NAME"],
-        "KEYCLOAK_CLIENT_ID": environment_vars["KEYCLOAK_CLIENT_ID"],
-        "KEYCLOAK_CLIENT_SECRET_KEY": environment_vars["KEYCLOAK_CLIENT_SECRET_KEY"]
+        "keycloak_server_url": environment_vars["keycloak_server_url"],
+        "keycloak_realm_name": environment_vars["keycloak_realm_name"],
+        "keycloak_client_id": environment_vars["keycloak_client_id"],
+        "keycloak_client_secret_key": environment_vars["keycloak_client_secret_key"]
     }
     config["database_config"] = {
-        "DBUSER": environment_vars["DBUSER"],
-        "DBPASSWORD": environment_vars["DBPASSWORD"],
-        "DBNAME": environment_vars["DBNAME"],
-        "DBHOSTNAME": environment_vars["DBHOSTNAME"],
-        "DBPORTS": environment_vars["DBPORTS"],
-        "HOSTNAME": environment_vars["HOSTNAME"],
+        "dbuser": environment_vars["dbuser"],
+        "dbpassword": environment_vars["dbpassword"],
+        "dbname": environment_vars["dbname"],
+        "dbhostname": environment_vars["dbhostname"],
+        "dbports": environment_vars["dbports"],
     }
     return config

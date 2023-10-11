@@ -1,9 +1,11 @@
 from flask import Flask, Blueprint
 from application.namespaces import main_ns, user_ns
 from application.config import configure_namespaces
-from application.namespaces.users.db import get_db_connection
+from application.config.db import get_db_connection
 
-API_VERSION="v1"
+API_VERSION = "v1"
+
+
 def create_base_app() -> Flask:
     """
     Creates and returns a base flask application without a db connection.
@@ -19,6 +21,7 @@ def create_base_app() -> Flask:
     app.register_blueprint(blueprint, url_prefix=f"/api/{API_VERSION}")
 
     return app
+
 
 def create_app():
     """
