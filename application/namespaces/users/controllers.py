@@ -12,7 +12,8 @@ from mongoengine import (
 from application.namespaces.users.exceptions import (
     OrodhaBadIdError,
     OrodhaBadRequestError,
-    OrodhaNotFoundError
+    OrodhaNotFoundError,
+    OrodhaForbiddenError
 )
 
 APPCONFIG = obtain_config()
@@ -64,12 +65,26 @@ def get_user(token, user_id):
 
     Returns:
         user(dict): A dictionary containing the data of the requested user.
+
+    Raises:
+        OrodhaForbiddenError: If the user_id passed does not match the user_id in the token.
+        OrodhaBadIdError: If there is a problem with the KeycloakGet method, typically because of
+            a bad id passed in.
+        OrodhaNotFoundError: If there are either no matching objects in the mongo db, or if there
+            are more than one object that match the same id.
     """
     try:
         keycloak_client = _create_keycloak_client()
-        keycloak_user = keycloak_client.get_user(token=token)
-        user = User.objects.get(keycloak_id=keycloak_user.get("id"))
+
+        id_from_token = keycloak_client.get_user(token=token)
+        id_from_token = id_from_token.get("id")
+
+        if id_from_token != user_id:
+            raise OrodhaForbiddenError(message="You don't have permission to access this resource")
+
+        user = User.objects.get(keycloak_id=user_id)
         return user
+
     except (
         KeycloakGetError,
     ) as err:
@@ -115,7 +130,7 @@ def post_user(payload):
         ValidationError,
         FieldDoesNotExist,
     ) as err:
-        raise OrodhaBadRequestError(message=err.message)
+        raise OrodhaBadRequestError(err.message)
 
 def delete_user(token, user_id):
     """
@@ -127,11 +142,22 @@ def delete_user(token, user_id):
 
     Returns:
         user_id(str): The user_id of the now deleted user.
+
+    Raises:
+        OrodhaForbiddenError: If the user_id passed does not match the user_id in the token.
+        OrodhaBadRequestError: If there is a validation or operation error from mongoengine.
+        OrodhaNotFoundError: If there are either no matching objects in the mongo db, or if there
+            are more than one object that match the same id.
     """
     try:
         keycloak_client = _create_keycloak_client()
 
-        user_id = keycloak_client.get_user(token=token).get("id")
+        id_from_token = keycloak_client.get_user(token=token)
+        id_from_token = id_from_token.get("id")
+
+        if id_from_token != user_id:
+            raise OrodhaForbiddenError(message="You don't have permission to access this resource")
+
         _delete_user_from_database(user_id)
         keycloak_client.delete_user(user_id)
 

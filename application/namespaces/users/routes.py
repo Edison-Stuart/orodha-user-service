@@ -7,7 +7,8 @@ from application.namespaces.users.controllers import (
 from application.namespaces.users.exceptions import (
     OrodhaBadIdError,
     OrodhaBadRequestError,
-    OrodhaNotFoundError
+    OrodhaNotFoundError,
+    OrodhaForbiddenError
 )
 
 user_ns = Namespace(
@@ -86,8 +87,9 @@ class UserApi(Resource):
             user_data = get_user(request_token, user_id)
             return user_data
         except (
+            OrodhaNotFoundError,
             OrodhaBadIdError,
-            OrodhaNotFoundError
+            OrodhaForbiddenError,
         ) as err:
             user_ns.abort(err.status_code, err.message)
 
@@ -105,6 +107,7 @@ class UserApi(Resource):
             return deleted_id
         except (
             OrodhaNotFoundError,
-            OrodhaBadRequestError
+            OrodhaBadRequestError,
+            OrodhaForbiddenError,
         ) as err:
             user_ns.abort(err.status_code, err.message)
