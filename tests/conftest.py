@@ -1,8 +1,8 @@
 import os
-
 import pytest
 from keycloak import KeycloakGetError
 from application import create_base_app
+from application.namespaces.user.models import User
 from .fixtures import MOCK_DATA, TEST_ENVIRONMENT
 from mongoengine import DoesNotExist, FieldDoesNotExist, ValidationError, connect
 import mongomock
@@ -15,6 +15,13 @@ def mock_app_client():
     yield app.test_client()
 
 
+
+@pytest.fixture
+def create_mock_user_object():
+    mock_user = User(**MOCK_DATA["decode_jwt_response"])
+    mock_user.save()
+    yield mock_user
+
 @pytest.fixture()
 def mock_service_env():
     os.environ.update(TEST_ENVIRONMENT)
@@ -24,7 +31,7 @@ class MockOrodhaKeycloakClient:
     """Mock OrodhaKeycloakConnection object to return keycloak fixture functions in testing."""
 
     def add_user(self, *args, **kwargs):
-        return MOCK_DATA["post_user_route_response"]
+        return MOCK_DATA["add_user_keycloak_response"]
 
     def delete_user(self, *args, **kwargs):
         return MOCK_DATA["delete_user_response"]
@@ -36,20 +43,20 @@ class MockOrodhaKeycloakClient:
         return MOCK_DATA["decode_jwt_response"]
 
 
-def fail_get_keycloak():
-    raise KeycloakGetError(message="test")
+def fail_get_keycloak(*args, **kwargs):
+    raise KeycloakGetError()
 
 
-def fail_does_not_exist():
-    raise DoesNotExist
+def fail_does_not_exist(*args, **kwargs):
+    raise DoesNotExist()
 
 
-def fail_field_does_not_exist():
-    raise FieldDoesNotExist
+def fail_field_does_not_exist(*args, **kwargs):
+    raise FieldDoesNotExist()
 
 
-def fail_delete_validation():
-    raise ValidationError
+def fail_delete_validation(*args, **kwargs):
+    raise ValidationError()
 
 
 @pytest.fixture

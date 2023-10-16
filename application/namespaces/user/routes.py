@@ -18,6 +18,7 @@ user_creation_model = user_ns.model(
     "User Input",
     {
         "email": fields.String(required=False),
+        "mongo_id": fields.String(required=False),
         "username": fields.String(required=True),
         "firstName": fields.String(required=True),
         "lastName": fields.String(required=True),
@@ -28,12 +29,12 @@ user_creation_model = user_ns.model(
 user_response_model = user_ns.model(
     "User Response",
     {
+        "mongo_id": fields.String(required=True),
         "keycloak_id": fields.String(required=False),
         "email": fields.String(required=False),
         "username": fields.String(required=True),
         "firstName": fields.String(required=True),
         "lastName": fields.String(required=True),
-        "id": fields.String(required=True, attribute="_id"),
     },
 )
 
@@ -78,7 +79,7 @@ class UsersApi(Resource):
         return user_data
 
 
-@user_ns.route("/<user_id>")
+@user_ns.route("/<mongo_user_id>")
 class UserApi(Resource):
     """
     Class that contains routes for GET, POST, and DELETE requests
@@ -86,12 +87,12 @@ class UserApi(Resource):
     """
 
     @user_ns.marshal_with(user_response_model)
-    def get(self, user_id):
+    def get(self, mongo_user_id):
         """
         Method which gets a user from the access token in the headers
 
         Args:
-            user_id(str): The user_id passed into our route and we are targeting to get
+            mongo_user_id(str): The user_id passed into our route and we are targeting to get
 
         Returns:
             user_data(dict): The user data from our database that
@@ -100,7 +101,7 @@ class UserApi(Resource):
         try:
             request_token = get_token_from_header(request.headers)
             user_data = application.namespaces.user.controllers.get_user(
-                request_token, user_id
+                request_token, mongo_user_id
             )
         except (
             OrodhaNotFoundError,
@@ -111,13 +112,13 @@ class UserApi(Resource):
 
         return user_data
 
-    def delete(self, user_id):
+    def delete(self, mongo_user_id):
         """
         Method which deletes a given user from keycloak and our database
         using the access token from keycloak.
 
         Args:
-            user_id(str): The user_id passed into our route and we are targeting for deletion.
+            mongo_user_id(str): The user_id passed into our route and we are targeting for deletion.
 
         Returns:
             deleted_id(str): The id of the deleted user
@@ -125,7 +126,7 @@ class UserApi(Resource):
         try:
             request_token = get_token_from_header(request.headers)
             deleted_id = application.namespaces.user.controllers.delete_user(
-                request_token, user_id
+                request_token, mongo_user_id
             )
         except (
             OrodhaNotFoundError,

@@ -30,18 +30,6 @@ def _add_user_to_database(user_args):
     return User(**user_args).save()
 
 
-def _delete_user_from_database(user_id):
-    """
-    Helper function which removes a given user from
-    the mongo database using the user_id.
-
-    Args:
-        user_id(str): Can either be a keycloak_id or the objects mongo id but is connected
-            to user we want to delete.
-    """
-    User.objects.get(id=user_id).delete()
-
-
 def _create_keycloak_client():
     """
     Helper function which creates our keycloak client from config data
@@ -59,13 +47,13 @@ def _create_keycloak_client():
     )
 
 
-def get_user(token, user_id):
+def get_user(token, request_user_mongo_id):
     """
     Function that takes a token and finds the user if any in our database associated with it.
 
     Args:
         token(str): The token passed from the UserApi route which helps us identify user auth level.
-        user_id(str): The user id that is associated with the user that we want to get.
+        request_user_mongo_id(str): The user id that is associated with the user that we want to get.
 
     Returns:
         user(dict): A dictionary containing the data of the requested user.
@@ -79,23 +67,23 @@ def get_user(token, user_id):
     """
     try:
         keycloak_client = _create_keycloak_client()
+        keycloak_id_from_token = keycloak_client.get_user(token=token)
+        keycloak_id_from_token = keycloak_id_from_token.get("id")
 
-        id_from_token = keycloak_client.get_user(token=token)
-        id_from_token = id_from_token.get("id")
+        user = User.objects.get(keycloak_id=keycloak_id_from_token)
 
-        if id_from_token != user_id:
+        if user.mongo_id != request_user_mongo_id:
             raise OrodhaForbiddenError(
                 message="You don't have permission to access this resource"
             )
 
-        user = User.objects.get(keycloak_id=user_id)
         return user
 
-    except (KeycloakGetError,) as err:
+    except KeycloakGetError as err:
         raise OrodhaBadIdError(err.message)
     except (MultipleObjectsReturned, DoesNotExist) as err:
         raise OrodhaNotFoundError(
-            f"Unable to find unique user with userId {user_id}: {err}"
+            f"Unable to find unique user with userId {request_user_mongo_id}: {err}"
         )
 
 
@@ -112,22 +100,32 @@ def post_user(payload):
     """
     try:
         keycloak_client = _create_keycloak_client()
-
-        user_data = keycloak_client.add_user(
-            email=payload.get("email"),
-            username=payload.get("username"),
-            firstName=payload.get("firstName"),
-            lastName=payload.get("lastName"),
-            password=payload.get("password"),
+        keycloak_user_data = keycloak_client.add_user(
+             email=payload.get("email"),
+             username=payload.get("username"),
+             firstName=payload.get("firstName"),
+             lastName=payload.get("lastName"),
+             password=payload.get("password"),
         )
-        user_dict = {
-            "email": payload.get("email"),
-            "username": payload.get("username"),
-            "firstName": payload.get("firstName"),
-            "lastName": payload.get("lastName"),
-            "keycloak_id": user_data["id"],
-        }
-        return _add_user_to_database(user_dict).to_mongo()
+        if payload.get("mongo_id") is None:
+            user_dict = {
+                "email": payload.get("email"),
+                "username": payload.get("username"),
+                "firstName": payload.get("firstName"),
+                "lastName": payload.get("lastName"),
+                "keycloak_id": keycloak_user_data["id"],
+            }
+        else:
+            user_dict = {
+                "email": payload.get("email"),
+                "username": payload.get("username"),
+                "firstName": payload.get("firstName"),
+                "lastName": payload.get("lastName"),
+                "keycloak_id": keycloak_user_data["id"],
+                "mongo_id": payload.get("mongo_id")
+            }
+        user = _add_user_to_database(user_dict)
+        return user
 
     except (
         ValidationError,
@@ -136,16 +134,16 @@ def post_user(payload):
         raise OrodhaBadRequestError(err.message)
 
 
-def delete_user(token, user_id):
+def delete_user(token, request_user_mongo_id):
     """
     Function which deletes a given user from our database and from keycloak.
 
     Args:
         token(str): The token passed from the UserApi route which helps us identify user auth level.
-        user_id(str): The user id that is associated with the user that we want to delete.
+        request_user_mongo_id(str): The user id that is associated with the user that we want to delete.
 
     Returns:
-        user_id(str): The user_id of the now deleted user.
+        request_user_mongo_id(str): The user_id of the now deleted user.
 
     Raises:
         OrodhaForbiddenError: If the user_id passed does not match the user_id in the token.
@@ -155,22 +153,23 @@ def delete_user(token, user_id):
     """
     try:
         keycloak_client = _create_keycloak_client()
+        keycloak_id_from_token = keycloak_client.get_user(token=token)
+        keycloak_id_from_token = keycloak_id_from_token.get("id")
 
-        id_from_token = keycloak_client.get_user(token=token)
-        id_from_token = id_from_token.get("id")
+        user = User.objects.get(keycloak_id=keycloak_id_from_token)
 
-        if id_from_token != user_id:
+        if user.mongo_id != request_user_mongo_id:
             raise OrodhaForbiddenError(
                 message="You don't have permission to access this resource"
             )
 
-        _delete_user_from_database(user_id)
-        keycloak_client.delete_user(user_id)
+        user.delete()
+        keycloak_client.delete_user(keycloak_id_from_token)
 
-        return user_id
+        return request_user_mongo_id
     except DoesNotExist as err:
         raise OrodhaNotFoundError(
-            f"Unable to find unique user with userId {user_id}: {err}"
+            f"Unable to find unique user with userId {request_user_mongo_id}: {err}"
         )
     except (ValidationError, OperationError) as err:
-        raise OrodhaBadRequestError(f"Unable to delete User {user_id}: {err}")
+        raise OrodhaBadRequestError(f"Unable to delete User {request_user_mongo_id}: {err}")
