@@ -1,4 +1,4 @@
-'''Configuration file that pulls config from the environment'''
+'''Configuration file that pulls config from the environment.'''
 import configparser
 import os
 import warnings

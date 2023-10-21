@@ -1,10 +1,22 @@
+"""Module which contains fixture functions that aid in testing our routes and controllers."""
 import os
 import pytest
 from keycloak import KeycloakGetError
 from application import create_base_app
 from application.namespaces.user.models import User
-from .fixtures import MOCK_DATA, TEST_ENVIRONMENT
-from mongoengine import DoesNotExist, FieldDoesNotExist, ValidationError, connect
+from .fixtures import (
+    MOCK_MONGO_USER_INPUT,
+    TEST_ENVIRONMENT,
+    KEYCLOAK_ADD_USER_RESPONSE,
+    KEYCLOAK_DELETE_USER_RESPONSE,
+    KEYCLOAK_GET_USER_RESPONSE,
+    KEYCLOAK_FAIL_TOKEN,
+    MONGO_DOES_NOT_EXIST_TOKEN,
+    KEYCLOAK_BAD_ID_GET_USER_RESPONSE,
+    KEYCLOAK_DOES_NOT_EXIST_TOKEN,
+    MONGO_VALIDATION_ERROR_TOKEN
+)
+from mongoengine import DoesNotExist, ValidationError, connect
 import mongomock
 
 
@@ -17,8 +29,8 @@ def mock_app_client():
 
 
 @pytest.fixture
-def create_mock_user_object():
-    mock_user = User(**MOCK_DATA["decode_jwt_response"])
+def mock_user_object():
+    mock_user = User(**MOCK_MONGO_USER_INPUT)
     mock_user.save()
     yield mock_user
 
@@ -31,32 +43,22 @@ class MockOrodhaKeycloakClient:
     """Mock OrodhaKeycloakConnection object to return keycloak fixture functions in testing."""
 
     def add_user(self, *args, **kwargs):
-        return MOCK_DATA["add_user_keycloak_response"]
+        return KEYCLOAK_ADD_USER_RESPONSE
 
     def delete_user(self, *args, **kwargs):
-        return MOCK_DATA["delete_user_response"]
+        return KEYCLOAK_DELETE_USER_RESPONSE
 
     def get_user(self, *args, **kwargs):
-        return MOCK_DATA["get_user_route_response"]
-
-    def decode_jwt(self, *args, **kwargs):
-        return MOCK_DATA["decode_jwt_response"]
-
-
-def fail_get_keycloak(*args, **kwargs):
-    raise KeycloakGetError()
-
-
-def fail_does_not_exist(*args, **kwargs):
-    raise DoesNotExist()
-
-
-def fail_field_does_not_exist(*args, **kwargs):
-    raise FieldDoesNotExist()
-
-
-def fail_delete_validation(*args, **kwargs):
-    raise ValidationError()
+        if kwargs.get("token") == KEYCLOAK_FAIL_TOKEN:
+            raise KeycloakGetError()
+        elif kwargs.get("token") == KEYCLOAK_DOES_NOT_EXIST_TOKEN:
+            raise DoesNotExist()
+        elif kwargs.get("token") == MONGO_VALIDATION_ERROR_TOKEN:
+            raise ValidationError()
+        elif kwargs.get("token") == MONGO_DOES_NOT_EXIST_TOKEN:
+            return KEYCLOAK_BAD_ID_GET_USER_RESPONSE
+        else:
+            return KEYCLOAK_GET_USER_RESPONSE
 
 
 @pytest.fixture
@@ -67,44 +69,4 @@ def mock_create_keycloak_connection(mocker):
     mocker.patch(
         "application.namespaces.user.controllers._create_keycloak_client",
         return_value=MockOrodhaKeycloakClient(),
-    )
-
-
-@pytest.fixture
-def mock_get_keycloak_error(mocker):
-    mocker.patch(
-        "application.namespaces.user.controllers.get_user",
-        side_effect=fail_get_keycloak,
-    )
-
-
-@pytest.fixture
-def mock_get_mongo_error(mocker):
-    mocker.patch(
-        "application.namespaces.user.controllers.get_user",
-        side_effect=fail_does_not_exist,
-    )
-
-
-@pytest.fixture
-def mock_post_keycloak_error(mocker):
-    mocker.patch(
-        "application.namespaces.user.controllers.post_user",
-        side_effect=fail_field_does_not_exist,
-    )
-
-
-@pytest.fixture
-def mock_delete_does_not_exist(mocker):
-    mocker.patch(
-        "application.namespaces.user.controllers.delete_user",
-        side_effect=fail_does_not_exist,
-    )
-
-
-@pytest.fixture
-def mock_delete_validation_error(mocker):
-    mocker.patch(
-        "application.namespaces.user.controllers.delete_user",
-        side_effect=fail_delete_validation,
     )

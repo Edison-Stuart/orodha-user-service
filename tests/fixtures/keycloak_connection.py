@@ -1,49 +1,82 @@
-"""Module which contains constant test data related to certain keycloak connection requests"""
+"""Module which contains constant test data related to certain keycloak connection requests."""
 
-from bson.objectid import ObjectId
+import uuid
 
-TEST_KEYCLOAK_USER_ID = ObjectId()
-TEST_MONGO_USER_ID = ObjectId()
+TEST_KEYCLOAK_USER_ID = uuid.uuid4()
 
-MOCK_DATA = {
-    "get_user_route_response": {
-        "email": "someemail@mail.com",
-        "username": "someuser",
-        "firstName": "some",
-        "lastName": "user",
-        "keycloak_id": str(TEST_KEYCLOAK_USER_ID),
-        "mongo_id": str(TEST_MONGO_USER_ID)
-    },
-    "post_user_route_response": {
-        "email": "someemail@mail.com",
-        "username": "someuser",
-        "firstName": "some",
-        "lastName": "user",
-        "keycloak_id": str(TEST_KEYCLOAK_USER_ID),
-        "mongo_id": str(TEST_MONGO_USER_ID)
-    },
-    "add_user_keycloak_response": {
-        "email": "someemail@mail.com",
-        "username": "someuser",
-        "firstName": "some",
-        "lastName": "user",
-        "id": str(TEST_KEYCLOAK_USER_ID),
-    },
-    "post_user_request": {
-        "email": "someemail@mail.com",
-        "username": "someuser",
-        "firstName": "some",
-        "lastName": "user",
-        "password": "somepassword",
-        "mongo_id": str(TEST_MONGO_USER_ID)
-    },
-    "delete_user_response": "",
-    "decode_jwt_response": {
-        "email": "someemail@mail.com",
-        "username": "someuser",
-        "firstName": "some",
-        "lastName": "user",
-        "keycloak_id": str(TEST_KEYCLOAK_USER_ID),
-        "mongo_id": str(TEST_MONGO_USER_ID)
-    },
+"""
+Mock token values to be added as headers in certain requests.
+Causes MockOrodhaKeycloakClient to fail in certain ways for testing.
+"""
+KEYCLOAK_FAIL_TOKEN = "fail_get"
+KEYCLOAK_DOES_NOT_EXIST_TOKEN = "keycloak_does_not_exist"
+MONGO_DOES_NOT_EXIST_TOKEN = "mongo_does_not_exist"
+MONGO_VALIDATION_ERROR_TOKEN = "mongo_validation_error"
+
+
+KEYCLOAK_BAD_ID_GET_USER_RESPONSE = {
+    'id': f"{TEST_KEYCLOAK_USER_ID}50502", 'createdTimestamp': 1695143223350,
+    'username': 'someuser', 'enabled': True, 'totp': False,
+    'emailVerified': False, 'disableableCredentialTypes': [],
+    'requiredActions': [], 'notBefore': 0,
+    'access': {
+        'manageGroupMembership': True,
+        'view': True, 'mapRoles': True,
+        'impersonate': True, 'manage': True
+    }
+}
+
+KEYCLOAK_GET_USER_RESPONSE = {
+    'id': str(TEST_KEYCLOAK_USER_ID), 'createdTimestamp': 1695143223350,
+    'username': 'someuser', 'enabled': True, 'totp': False,
+    'emailVerified': False, 'disableableCredentialTypes': [],
+    'requiredActions': [], 'notBefore': 0,
+    'access': {
+        'manageGroupMembership': True,
+        'view': True, 'mapRoles': True,
+        'impersonate': True, 'manage': True
+    }
+}
+
+KEYCLOAK_ADD_USER_RESPONSE = str(TEST_KEYCLOAK_USER_ID)
+
+KEYCLOAK_DELETE_USER_RESPONSE = {}
+
+
+MOCK_MONGO_USER_INPUT = {
+    "email": "someemail@mail.com",
+    "username": "someuser",
+    "firstName": "some",
+    "lastName": "user",
+    "keycloak_id": str(TEST_KEYCLOAK_USER_ID),
+}
+
+GET_USER_ROUTE_RESPONSE = {
+    "email": "someemail@mail.com",
+    "username": "someuser",
+    "firstName": "some",
+    "lastName": "user",
+    "keycloak_id": str(TEST_KEYCLOAK_USER_ID),
+}
+
+POST_USER_REQUEST = {
+    "email": "someemail@mail.com",
+    "username": "someuser",
+    "firstName": "some",
+    "lastName": "user",
+    "password": "somepassword",
+}
+
+POST_USER_ROUTE_RESPONSE = {
+    "email": "someemail@mail.com",
+    "username": "someuser",
+    "firstName": "some",
+    "lastName": "user",
+    "keycloak_id": str(TEST_KEYCLOAK_USER_ID),
+}
+
+POST_USER_REQUEST_INVALID = {
+    "email": 23,
+    "username": None,
+    "password": True
 }

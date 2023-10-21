@@ -1,3 +1,7 @@
+"""
+Our main application init module, contains functions which gather
+namespaces and create our Flask app.
+"""
 from flask import Flask, Blueprint
 from application.namespaces import main_ns, user_ns
 from application.config import configure_namespaces
@@ -11,7 +15,7 @@ def create_base_app() -> Flask:
     Creates and returns a base flask application without a db connection.
 
     Returns:
-        app: Our main flask app with our api and blueprints linked.
+        app(Flask): Our main flask app with our api and blueprints linked.
     """
     app = Flask(__name__, instance_relative_config=False)
     blueprint = Blueprint("Home", __name__)
@@ -23,12 +27,12 @@ def create_base_app() -> Flask:
     return app
 
 
-def create_app():
+def create_app() -> Flask:
     """
     Creates and returns a flask app that has a live db connection.
 
     Returns:
-        app: Our main flask app that has been connected to our database.
+        app(Flask): Our main flask app that has been connected to our database.
     """
     app = create_base_app()
     get_db_connection()

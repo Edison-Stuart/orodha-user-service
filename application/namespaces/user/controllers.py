@@ -1,3 +1,7 @@
+"""
+Module that contains the controller or 'Business Logic' functions which interact with
+our storage and user auth services for our routes.
+"""
 import orodha_keycloak
 from application.config import obtain_config
 from application.namespaces.user.models import User
@@ -19,18 +23,22 @@ from application.namespaces.user.exceptions import (
 APPCONFIG = obtain_config()
 
 
-def _add_user_to_database(user_args):
+def _add_user_to_database(user_args: dict) -> User:
     """
     Helper function which takes user_args and creates a mongo user.
 
     Args:
         user_args(dict): A dictionary of our user's data such as
             username and email.
+
+    Returns:
+        User: The user Document blueprint that is defined in models.py,
+            filled with data from user_args
     """
     return User(**user_args).save()
 
 
-def _create_keycloak_client():
+def _create_keycloak_client() -> orodha_keycloak.OrodhaKeycloakClient:
     """
     Helper function which creates our keycloak client from config data
     for use in our main controller functions.
@@ -47,7 +55,7 @@ def _create_keycloak_client():
     )
 
 
-def get_user(token, request_user_mongo_id):
+def get_user(token: str, request_user_mongo_id: str) -> User:
     """
     Function that takes a token and finds the user if any in our database associated with it.
 
@@ -56,10 +64,9 @@ def get_user(token, request_user_mongo_id):
         request_user_mongo_id(str): The user id that is associated with the user that we want to get.
 
     Returns:
-        user(dict): A dictionary containing the data of the requested user.
+        user(document): A mongoengine document object containing the data of the requested user.
 
     Raises:
-        OrodhaForbiddenError: If the user_id passed does not match the user_id in the token.
         OrodhaBadIdError: If there is a problem with the KeycloakGet method, typically because of
             a bad id passed in.
         OrodhaNotFoundError: If there are either no matching objects in the mongo db, or if there
@@ -67,12 +74,11 @@ def get_user(token, request_user_mongo_id):
     """
     try:
         keycloak_client = _create_keycloak_client()
-        keycloak_id_from_token = keycloak_client.get_user(token=token)
-        keycloak_id_from_token = keycloak_id_from_token.get("id")
+        keycloak_id_from_token = keycloak_client.get_user(token=token).get("id")
 
         user = User.objects.get(keycloak_id=keycloak_id_from_token)
 
-        if user.mongo_id != request_user_mongo_id:
+        if str(user.id) != request_user_mongo_id:
             raise OrodhaForbiddenError(
                 message="You don't have permission to access this resource"
             )
@@ -80,50 +86,47 @@ def get_user(token, request_user_mongo_id):
         return user
 
     except KeycloakGetError as err:
-        raise OrodhaBadIdError(err.message)
+        raise OrodhaBadIdError(
+            f"Unable to find keycloak user with token {token}: {err}"
+        )
     except (MultipleObjectsReturned, DoesNotExist) as err:
         raise OrodhaNotFoundError(
             f"Unable to find unique user with userId {request_user_mongo_id}: {err}"
         )
 
 
-def post_user(payload):
+def post_user(payload: dict) -> User:
     """
-    Funtion which creates a new keycloak user and a new database entry from user_data.
+    Function which creates a new keycloak user and a new database entry from user_data.
 
     Args:
         payload(dict): The dictionary of arguments that was
             sent in via body data from our post route.
 
     Returns:
-        user_dict(dict): A dictionary containing the data of the new user that was created.
+        user(document): A mongoengine document object containing the data of the created user.
+
+    Raises:
+        OrodhaBadRequestError: If there is a problem with the user document creation such as
+            necessary fields missing or an internal mongoengine validation error.
     """
     try:
         keycloak_client = _create_keycloak_client()
-        keycloak_user_data = keycloak_client.add_user(
+        keycloak_user_id = keycloak_client.add_user(
              email=payload.get("email"),
              username=payload.get("username"),
              firstName=payload.get("firstName"),
              lastName=payload.get("lastName"),
              password=payload.get("password"),
         )
-        if payload.get("mongo_id") is None:
-            user_dict = {
-                "email": payload.get("email"),
-                "username": payload.get("username"),
-                "firstName": payload.get("firstName"),
-                "lastName": payload.get("lastName"),
-                "keycloak_id": keycloak_user_data["id"],
-            }
-        else:
-            user_dict = {
-                "email": payload.get("email"),
-                "username": payload.get("username"),
-                "firstName": payload.get("firstName"),
-                "lastName": payload.get("lastName"),
-                "keycloak_id": keycloak_user_data["id"],
-                "mongo_id": payload.get("mongo_id")
-            }
+        user_dict = {
+            "email": payload.get("email"),
+            "username": payload.get("username"),
+            "firstName": payload.get("firstName"),
+            "lastName": payload.get("lastName"),
+            "keycloak_id": keycloak_user_id,
+        }
+
         user = _add_user_to_database(user_dict)
         return user
 
@@ -131,22 +134,24 @@ def post_user(payload):
         ValidationError,
         FieldDoesNotExist,
     ) as err:
-        raise OrodhaBadRequestError(err.message)
+        raise OrodhaBadRequestError(
+            f"There was an issue creating user: {err}"
+        )
 
 
-def delete_user(token, request_user_mongo_id):
+def delete_user(token: str, request_user_mongo_id: str) -> str:
     """
     Function which deletes a given user from our database and from keycloak.
 
     Args:
         token(str): The token passed from the UserApi route which helps us identify user auth level.
-        request_user_mongo_id(str): The user id that is associated with the user that we want to delete.
+        request_user_mongo_id(str): The user id that is associated with the user that we want
+            to delete.
 
     Returns:
         request_user_mongo_id(str): The user_id of the now deleted user.
 
     Raises:
-        OrodhaForbiddenError: If the user_id passed does not match the user_id in the token.
         OrodhaBadRequestError: If there is a validation or operation error from mongoengine.
         OrodhaNotFoundError: If there are either no matching objects in the mongo db, or if there
             are more than one object that match the same id.
@@ -158,7 +163,7 @@ def delete_user(token, request_user_mongo_id):
 
         user = User.objects.get(keycloak_id=keycloak_id_from_token)
 
-        if user.mongo_id != request_user_mongo_id:
+        if str(user.id) != request_user_mongo_id:
             raise OrodhaForbiddenError(
                 message="You don't have permission to access this resource"
             )

@@ -1,10 +1,11 @@
+"""Module which configures and obtains our mongo database connection."""
 from mongoengine import connect
 from application.config import obtain_config
 
 APPCONFIG = obtain_config()
 
 
-def get_mongo_settings():
+def get_mongo_settings() -> dict:
     """
     Function that creates a dictionary of settings to be consumed by mongo's connect function.
 

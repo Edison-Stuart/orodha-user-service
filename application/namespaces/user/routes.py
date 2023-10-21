@@ -1,4 +1,3 @@
-# pylint: disable=no-self-use
 """
 Module which contains the flask restx routes for the user service api.
 """
@@ -18,7 +17,6 @@ user_creation_model = user_ns.model(
     "User Input",
     {
         "email": fields.String(required=False),
-        "mongo_id": fields.String(required=False),
         "username": fields.String(required=True),
         "firstName": fields.String(required=True),
         "lastName": fields.String(required=True),
@@ -29,7 +27,7 @@ user_creation_model = user_ns.model(
 user_response_model = user_ns.model(
     "User Response",
     {
-        "mongo_id": fields.String(required=True),
+        "id": fields.String(required=True),
         "keycloak_id": fields.String(required=False),
         "email": fields.String(required=False),
         "username": fields.String(required=True),
@@ -39,7 +37,7 @@ user_response_model = user_ns.model(
 )
 
 
-def get_token_from_header(headers):
+def get_token_from_header(headers: dict) -> str:
     """
     Accepts a request header and gets the auth token from it.
 
@@ -62,7 +60,7 @@ class UsersApi(Resource):
 
     @user_ns.expect(user_creation_model, validate=True)
     @user_ns.marshal_with(user_response_model)
-    def post(self):
+    def post(self) -> dict:
         """
         Method which adds a user to keycloak and our database using form data from the request.
 
@@ -87,7 +85,7 @@ class UserApi(Resource):
     """
 
     @user_ns.marshal_with(user_response_model)
-    def get(self, mongo_user_id):
+    def get(self, mongo_user_id: str) -> dict:
         """
         Method which gets a user from the access token in the headers
 
@@ -112,7 +110,7 @@ class UserApi(Resource):
 
         return user_data
 
-    def delete(self, mongo_user_id):
+    def delete(self, mongo_user_id: str) -> dict:
         """
         Method which deletes a given user from keycloak and our database
         using the access token from keycloak.
