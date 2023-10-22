@@ -9,7 +9,7 @@ db.auth(rootDBUser, rootDBPassword);
 db = db.getSiblingDB(dbName);
 
 db.createUser({
-  user: dbUser,
-  pwd: dbPassword,
-  roles: [{ role: "dbOwner", db: dbName }],
+	user: dbUser,
+	pwd: dbPassword,
+	roles: [{ role: "dbOwner", db: dbName }],
 });

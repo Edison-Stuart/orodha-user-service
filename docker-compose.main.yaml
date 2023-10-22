@@ -1,39 +1,49 @@
 version: "3"
 
 services:
-  orodha-user-server:
-    hostname: user-service
-    container_name: user-service
-    image: ${DOCKER_USERNAME}/orodha-user-service:${TAG}
-    build:
-      dockerfile: Dockerfile
-      context: .
-    volumes:
-      - ./application:/orodha-user-service/application
-    ports:
-      - "5000:5000"
-    networks:
-      - user-service-network
+    orodha-user-server:
+        hostname: user-service
+        container_name: user-service
+        image: edisonstuart/orodha-user-service:${TAG}
+        build:
+            dockerfile: Dockerfile
+            context: .
+        volumes:
+            - ./application:/orodha-user-service/application
+        environment:
+            KEYCLOAK_SERVER_URL: $KEYCLOAK_SERVER_URL
+            KEYCLOAK_REALM_NAME: $KEYCLOAK_REALM_NAME
+            KEYCLOAK_CLIENT_ID: $KEYCLOAK_CLIENT_ID
+            KEYCLOAK_CLIENT_SECRET_KEY: $KEYCLOAK_CLIENT_SECRET_KEY
+            DBUSER: $DBUSER
+            DBPASSWORD: $DBPASSWORD
+            DBNAME: $DBNAME
+            DBHOSTNAME: $DBHOSTNAME
+            DBPORTS: $DBPORTS
+        ports:
+            - "5000:5000"
+        networks:
+            - user-service-network
 
-  orodha-user-mongo:
-    hostname: user-service-mongo
-    container_name: user-service-mongo
-    image: mongo
-    restart: always
-    volumes:
-      - ./scripts/db_scripts:/docker-entrypoint-initdb.d
-    environment:
-      MONGO_INITDB_DATABASE: admin
-      MONGO_INITDB_ROOT_USERNAME: $DBROOTUSER
-      MONGO_INITDB_ROOT_PASSWORD: $DBROOTPASSWORD
-      DBUSER: $DBUSER
-      DBPASSWORD: $DBPASSWORD
-      DBNAME: $DBNAME
-    ports:
-      - "27017:27017"
-    networks:
-      - user-service-network
+    orodha-user-mongo:
+        hostname: user-service-mongo
+        container_name: user-service-mongo
+        image: mongo
+        restart: always
+        volumes:
+            - ./scripts/db_scripts:/docker-entrypoint-initdb.d
+        environment:
+            MONGO_INITDB_DATABASE: admin
+            MONGO_INITDB_ROOT_USERNAME: $DBROOTUSER
+            MONGO_INITDB_ROOT_PASSWORD: $DBROOTPASSWORD
+            DBUSER: $DBUSER
+            DBPASSWORD: $DBPASSWORD
+            DBNAME: $DBNAME
+        ports:
+            - "27017:27017"
+        networks:
+            - user-service-network
 
 networks:
-  user-service-network:
-    driver: bridge
+    user-service-network:
+        driver: bridge

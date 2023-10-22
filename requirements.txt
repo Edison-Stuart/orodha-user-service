@@ -21,3 +21,4 @@ referencing==0.29.1
 rpds-py==0.8.10
 Werkzeug==2.3.6
 zipp==3.16.0
+orodha-keycloak==1.0.2
