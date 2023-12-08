@@ -3,8 +3,6 @@ Module that contains the controller or 'Business Logic' functions which interact
 our storage and user auth services for our routes.
 """
 import orodha_keycloak
-from application.config import obtain_config
-from application.namespaces.user.models import User
 from keycloak import KeycloakGetError
 from mongoengine import (
     MultipleObjectsReturned,
@@ -13,6 +11,8 @@ from mongoengine import (
     DoesNotExist,
     OperationError,
 )
+from application.config import obtain_config
+from application.namespaces.user.models import User
 from application.namespaces.user.exceptions import (
     OrodhaBadIdError,
     OrodhaBadRequestError,
@@ -21,7 +21,16 @@ from application.namespaces.user.exceptions import (
 )
 
 APPCONFIG = obtain_config()
-
+GET_ALL_USER_PIPELINE = [
+        {
+            "$unset": [
+                "dateCreated",
+                "firstName",
+                "lastName",
+                "email",
+            ]
+        }
+    ]
 
 def _add_user_to_database(user_args: dict) -> User:
     """
@@ -53,6 +62,30 @@ def _create_keycloak_client() -> orodha_keycloak.OrodhaKeycloakClient:
         client_id=APPCONFIG["keycloak_config"]["keycloak_client_id"],
         client_secret_key=APPCONFIG["keycloak_config"]["keycloak_client_secret_key"],
     )
+
+
+def get_all_users(token: str) -> list:
+    """
+    Function that takes a JWT token and returns the username, user_id, and keycloak_id of
+    each user.
+
+    Raises:
+        OrodhaForbidenError: If the JWT token is not valid or is missing.
+
+    Returns:
+        response_data(list[UserDocument]): A list of the user documents that have been trimmed
+            to the id and username values only.
+    """
+    keycloak_client = _create_keycloak_client()
+    keycloak_id_from_token = keycloak_client.get_user(token=token).get("id")
+
+    if not keycloak_id_from_token:
+        raise OrodhaForbiddenError(
+            message="You don't have permission to access this resource"
+        )
+
+    response_data = User.objects().aggregate(GET_ALL_USER_PIPELINE)
+    return response_data
 
 
 def get_user(token: str, request_user_mongo_id: str) -> User:

@@ -76,6 +76,23 @@ class UsersApi(Resource):
 
         return user_data
 
+    def get(self) -> dict:
+        """
+        Method which obtains all user and keycloak id values from the databse. other personal
+        information is marshalled out.
+        """
+        try:
+            request_token = get_token_from_header(request.headers)
+            user_data = application.namespaces.user.controllers.get_all_users(
+                request_token
+            )
+        except OrodhaForbiddenError as err:
+            user_ns.about(err.status_code, err.message)
+
+        return user_data
+
+
+
 
 @user_ns.route("/<mongo_user_id>")
 class UserApi(Resource):
