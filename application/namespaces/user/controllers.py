@@ -85,7 +85,7 @@ def get_all_users(token: str) -> list:
         )
 
     response_data = User.objects().aggregate(GET_ALL_USER_PIPELINE)
-    return [doc for doc in response_data]
+    return list(response_data)
 
 
 def get_user(token: str, request_user_mongo_id: str) -> User:
