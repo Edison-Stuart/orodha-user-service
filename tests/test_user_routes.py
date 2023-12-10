@@ -62,6 +62,33 @@ def test_get(mock_service_env, mock_user_object, mock_app_client, mock_create_ke
     assert response_get.status_code == HTTPStatus.OK
 
 
+def test_get_all(mock_service_env, mock_app_client, mock_create_keycloak_connection):
+    """
+    Test function which calls the user get route with no arguments,
+    obtaining all user_id and keycloak_id values.
+
+    Args:
+        mock_service_env: A fixture function which loads the service environment with
+            variables from fixture data.
+        mock_app_client: An instance of our Flask app which has been loaded with a MongoMock
+            connection.
+        mock_create_keycloak_connection: Fixture function which returns to us a mocked
+            version of the oroha-keycloak package fpr testing purposes.
+    """
+    response_get_all = mock_app_client.get(
+        f"{USER_ROUTE}", headers={"Content-Type": "application/json"}
+    )
+
+    assert response_get_all.status_code == HTTPStatus.OK
+    assert isinstance(response_get_all.json, list)
+    assert isinstance(response_get_all.json[0], dict)
+    response_keys = response_get_all.json[0].keys()
+    assert len(response_keys) == 3
+    assert "_id" in response_keys
+    assert "keycloak_id" in response_keys
+    assert "username" in response_keys
+
+
 def test_post(mock_service_env, mock_app_client, mock_create_keycloak_connection):
     """
     Test function which adds a user to the database and asserts the correct information has

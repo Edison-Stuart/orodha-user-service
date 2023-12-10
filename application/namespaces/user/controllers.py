@@ -23,12 +23,12 @@ from application.namespaces.user.exceptions import (
 APPCONFIG = obtain_config()
 GET_ALL_USER_PIPELINE = [
         {
-            "$unset": [
-                "dateCreated",
-                "firstName",
-                "lastName",
-                "email",
-            ]
+            "$project": {
+                "dateCreated": 0,
+                "firstName": 0,
+                "lastName": 0,
+                "email": 0,
+            }
         }
     ]
 
@@ -85,7 +85,7 @@ def get_all_users(token: str) -> list:
         )
 
     response_data = User.objects().aggregate(GET_ALL_USER_PIPELINE)
-    return response_data
+    return [doc for doc in response_data]
 
 
 def get_user(token: str, request_user_mongo_id: str) -> User:

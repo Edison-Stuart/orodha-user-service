@@ -36,6 +36,15 @@ user_response_model = user_ns.model(
     },
 )
 
+get_all_users_model = user_ns.model(
+    "Get All Response",
+    {
+        "_id": fields.String(required=True),
+        "keycloak_id": fields.String(required=False),
+        "username": fields.String(required=True),
+    }
+)
+
 
 def get_token_from_header(headers: dict) -> str:
     """
@@ -76,6 +85,7 @@ class UsersApi(Resource):
 
         return user_data
 
+    @user_ns.marshal_with(get_all_users_model)
     def get(self) -> dict:
         """
         Method which obtains all user and keycloak id values from the databse. other personal
@@ -87,7 +97,7 @@ class UsersApi(Resource):
                 request_token
             )
         except OrodhaForbiddenError as err:
-            user_ns.about(err.status_code, err.message)
+            user_ns.abort(err.status_code, err.message)
 
         return user_data
 
