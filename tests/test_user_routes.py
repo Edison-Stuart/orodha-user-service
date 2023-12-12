@@ -4,10 +4,11 @@ from .fixtures import (
     POST_USER_REQUEST,
     POST_USER_REQUEST_INVALID,
     POST_USER_ROUTE_RESPONSE,
+    BULK_GET_USER_REQUEST,
     KEYCLOAK_FAIL_TOKEN,
     MONGO_DOES_NOT_EXIST_TOKEN,
     KEYCLOAK_DOES_NOT_EXIST_TOKEN,
-    MONGO_VALIDATION_ERROR_TOKEN
+    MONGO_VALIDATION_ERROR_TOKEN,
 )
 from http import HTTPStatus
 from copy import deepcopy
@@ -62,10 +63,9 @@ def test_get(mock_service_env, mock_user_object, mock_app_client, mock_create_ke
     assert response_get.status_code == HTTPStatus.OK
 
 
-def test_get_all(mock_service_env, mock_app_client, mock_create_keycloak_connection):
+def test_bulk_get(mock_service_env, mock_app_client, mock_create_keycloak_connection, mock_user_object_two):
     """
-    Test function which calls the user get route with no arguments,
-    obtaining all user_id and keycloak_id values.
+    Test function which calls the user bulk get endpoint.
 
     Args:
         mock_service_env: A fixture function which loads the service environment with
@@ -75,13 +75,15 @@ def test_get_all(mock_service_env, mock_app_client, mock_create_keycloak_connect
         mock_create_keycloak_connection: Fixture function which returns to us a mocked
             version of the oroha-keycloak package fpr testing purposes.
     """
-    response_get_all = mock_app_client.get(
-        f"{USER_ROUTE}", headers={"Content-Type": "application/json"}
+    response_get_all = mock_app_client.post(
+        f"{USER_ROUTE}/get-bulk-users", json=BULK_GET_USER_REQUEST
     )
 
     assert response_get_all.status_code == HTTPStatus.OK
     assert isinstance(response_get_all.json, list)
     assert isinstance(response_get_all.json[0], dict)
+    assert response_get_all.json[0]["username"] in ["someuser", "oneuser"]
+    assert response_get_all.json[1]["username"] in ["someuser", "oneuser"]
     response_keys = response_get_all.json[0].keys()
     assert len(response_keys) == 3
     assert "_id" in response_keys

@@ -39,9 +39,9 @@ user_response_model = user_ns.model(
 bulk_request_model = user_ns.model(
     "Bulk Request",
     {
-        "page_size": fields.Integer(),
-        "page_number": fields.Integer(),
-        "targets": fields.List(fields.String())
+        "page_size": fields.Integer(required=False),
+        "page_number": fields.Integer(required=False),
+        "targets": fields.List(fields.String(), required=False)
     }
 )
 
@@ -67,7 +67,6 @@ def get_token_from_header(headers: dict) -> str:
     """
     token = headers.get("Authorization", "").lstrip("Bearer").strip()
     return token
-
 
 @user_ns.route("")
 class UsersCreationApi(Resource):

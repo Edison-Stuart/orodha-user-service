@@ -51,6 +51,14 @@ MOCK_MONGO_USER_INPUT = {
     "keycloak_id": str(TEST_KEYCLOAK_USER_ID),
 }
 
+MOCK_MONGO_USER_INPUT_TWO = {
+    "email": "someemail@mail.com",
+    "username": "oneuser",
+    "firstName": "one",
+    "lastName": "user",
+    "keycloak_id": f"{str(TEST_KEYCLOAK_USER_ID)}80085",
+}
+
 GET_USER_ROUTE_RESPONSE = {
     "email": "someemail@mail.com",
     "username": "someuser",
@@ -58,6 +66,12 @@ GET_USER_ROUTE_RESPONSE = {
     "lastName": "user",
     "keycloak_id": str(TEST_KEYCLOAK_USER_ID),
 }
+
+BULK_GET_USER_REQUEST = {
+    "page_size": 10,
+    "page_number": 1,
+    "targets": ["someuser", "oneuser"]
+    }
 
 POST_USER_REQUEST = {
     "email": "someemail@mail.com",
