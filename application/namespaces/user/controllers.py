@@ -12,6 +12,7 @@ from mongoengine import (
     OperationError,
 )
 from application.config import obtain_config
+from application.namespaces.user.common import pipelines
 from application.namespaces.user.models import User
 from application.namespaces.user.exceptions import (
     OrodhaBadIdError,
@@ -21,16 +22,6 @@ from application.namespaces.user.exceptions import (
 )
 
 APPCONFIG = obtain_config()
-GET_ALL_USER_PIPELINE = [
-        {
-            "$project": {
-                "dateCreated": 0,
-                "firstName": 0,
-                "lastName": 0,
-                "email": 0,
-            }
-        }
-    ]
 
 def _add_user_to_database(user_args: dict) -> User:
     """
@@ -64,27 +55,36 @@ def _create_keycloak_client() -> orodha_keycloak.OrodhaKeycloakClient:
     )
 
 
-def get_all_users(token: str) -> list:
+def get_bulk_users(token: str, payload: dict) -> list:
     """
-    Function that takes a JWT token and returns the username, user_id, and keycloak_id of
-    each user.
+    Function that takes a JWT and optional filters, then returns truncated user data.
+
+    Args:
+        token(str): A JWT token provided by keycloak.
+        payload(dict): The post payload containing filter data and user data
 
     Raises:
         OrodhaForbidenError: If the JWT token is not valid or is missing.
 
     Returns:
-        response_data(list[UserDocument]): A list of the user documents that have been trimmed
+        response_data(list[UserDocument]): A list of matching user documents that have been trimmed
             to the id and username values only.
     """
     keycloak_client = _create_keycloak_client()
-    keycloak_id_from_token = keycloak_client.get_user(token=token).get("id")
 
-    if not keycloak_id_from_token:
+    try:
+        keycloak_client.get_user(token=token).get("id")
+    except Exception:
         raise OrodhaForbiddenError(
-            message="You don't have permission to access this resource"
+            message="You don't have the required token to access this resource."
         )
 
-    response_data = User.objects().aggregate(GET_ALL_USER_PIPELINE)
+    bulk_user_pipeline = pipelines.obtain_bulk_user_pipeline(
+        page_size=payload.get("page_size"),
+        page_number=payload.get("page_number"),
+        targets=payload.get("targets")
+    )
+    response_data = User.objects().aggregate(bulk_user_pipeline)
     return list(response_data)
 
 

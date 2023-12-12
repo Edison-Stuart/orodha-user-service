@@ -36,8 +36,17 @@ user_response_model = user_ns.model(
     },
 )
 
-get_all_users_model = user_ns.model(
-    "Get All Response",
+bulk_request_model = user_ns.model(
+    "Bulk Request",
+    {
+        "page_size": fields.Integer(),
+        "page_number": fields.Integer(),
+        "targets": fields.List(fields.String())
+    }
+)
+
+bulk_response_model = user_ns.model(
+    "Bulk Response",
     {
         "_id": fields.String(required=True),
         "keycloak_id": fields.String(required=False),
@@ -61,10 +70,10 @@ def get_token_from_header(headers: dict) -> str:
 
 
 @user_ns.route("")
-class UsersApi(Resource):
+class UsersCreationApi(Resource):
     """
     Class that contains a route for the POST request
-    that is sent to the user namespace via /user
+    that is sent to the user namespace via /users
     """
 
     @user_ns.expect(user_creation_model, validate=True)
@@ -85,16 +94,26 @@ class UsersApi(Resource):
 
         return user_data
 
-    @user_ns.marshal_with(get_all_users_model)
-    def get(self) -> dict:
+
+@user_ns.route("/get-bulk-users")
+class UsersBulkApi(Resource):
+    """
+    Class that contains the route for bulk GET operations.
+    Route will only accept a POST request due to data input requirements.
+    """
+
+    @user_ns.expect(bulk_request_model, validate=True)
+    @user_ns.marshal_with(bulk_response_model)
+    def post(self) -> list:
         """
         Method which obtains all user and keycloak id values from the databse. other personal
         information is marshalled out.
         """
         try:
             request_token = get_token_from_header(request.headers)
-            user_data = application.namespaces.user.controllers.get_all_users(
-                request_token
+            user_data = application.namespaces.user.controllers.get_bulk_users(
+                request_token,
+                user_ns.payload
             )
         except OrodhaForbiddenError as err:
             user_ns.abort(err.status_code, err.message)
@@ -102,13 +121,11 @@ class UsersApi(Resource):
         return user_data
 
 
-
-
 @user_ns.route("/<mongo_user_id>")
-class UserApi(Resource):
+class UsersApi(Resource):
     """
-    Class that contains routes for GET, POST, and DELETE requests
-    that are sent to the user namespace via /user/
+    Class that contains routes for GET and DELETE requests
+    that are sent to the user namespace via /users/<user_id>
     """
 
     @user_ns.marshal_with(user_response_model)
