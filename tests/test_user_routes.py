@@ -9,6 +9,8 @@ from .fixtures import (
     MONGO_DOES_NOT_EXIST_TOKEN,
     KEYCLOAK_DOES_NOT_EXIST_TOKEN,
     MONGO_VALIDATION_ERROR_TOKEN,
+    TEST_USERNAME_ONE,
+    TEST_USERNAME_TWO,
 )
 from http import HTTPStatus
 from copy import deepcopy
@@ -78,17 +80,18 @@ def test_bulk_get(mock_service_env, mock_app_client, mock_create_keycloak_connec
     response_get_all = mock_app_client.post(
         f"{USER_ROUTE}/get-bulk-users", json=BULK_GET_USER_REQUEST
     )
-
+    usernames = [
+        TEST_USERNAME_ONE,
+        TEST_USERNAME_TWO
+    ]
     assert response_get_all.status_code == HTTPStatus.OK
     assert isinstance(response_get_all.json, list)
     assert isinstance(response_get_all.json[0], dict)
-    assert response_get_all.json[0]["username"] in ["someuser", "oneuser"]
-    assert response_get_all.json[1]["username"] in ["someuser", "oneuser"]
-    response_keys = response_get_all.json[0].keys()
-    assert len(response_keys) == 3
-    assert "_id" in response_keys
-    assert "keycloak_id" in response_keys
-    assert "username" in response_keys
+    assert response_get_all.json[0]["username"] in usernames
+    assert len(response_get_all.json[0]) == 3
+    assert "_id" in response_get_all.json[0]
+    assert "keycloak_id" in response_get_all.json[0]
+    assert "username" in response_get_all.json[0]
 
 
 def test_post(mock_service_env, mock_app_client, mock_create_keycloak_connection):

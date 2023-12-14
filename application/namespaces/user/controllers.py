@@ -22,6 +22,9 @@ from application.namespaces.user.exceptions import (
 )
 
 APPCONFIG = obtain_config()
+DEFAULT_PAGE_SIZE = 10
+DEFAULT_PAGE_NUMBER = 1
+
 
 def _add_user_to_database(user_args: dict) -> User:
     """
@@ -74,14 +77,25 @@ def get_bulk_users(token: str, payload: dict) -> list:
 
     try:
         keycloak_client.get_user(token=token).get("id")
-    except Exception:
+    except KeycloakGetError:
         raise OrodhaForbiddenError(
             message="You don't have the required token to access this resource."
         )
 
+    page_size = payload.get("page_size")
+    page_number = payload.get("page_number")
+
+    if page_size is None:
+        page_size = DEFAULT_PAGE_SIZE
+    if page_number is None or page_number == 1:
+        page_number = DEFAULT_PAGE_NUMBER
+        offset = 0
+    else:
+        offset = (page_size * page_number) - page_size
+
     bulk_user_pipeline = pipelines.obtain_bulk_user_pipeline(
-        page_size=payload.get("page_size"),
-        page_number=payload.get("page_number"),
+        page_size=page_size,
+        offset=offset,
         targets=payload.get("targets")
     )
     response_data = User.objects().aggregate(bulk_user_pipeline)
