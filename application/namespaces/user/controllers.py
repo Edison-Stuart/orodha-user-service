@@ -3,8 +3,6 @@ Module that contains the controller or 'Business Logic' functions which interact
 our storage and user auth services for our routes.
 """
 import orodha_keycloak
-from application.config import obtain_config
-from application.namespaces.user.models import User
 from keycloak import KeycloakGetError
 from mongoengine import (
     MultipleObjectsReturned,
@@ -13,6 +11,9 @@ from mongoengine import (
     DoesNotExist,
     OperationError,
 )
+from application.config import obtain_config
+from application.namespaces.user.common import pipelines
+from application.namespaces.user.models import User
 from application.namespaces.user.exceptions import (
     OrodhaBadIdError,
     OrodhaBadRequestError,
@@ -21,6 +22,8 @@ from application.namespaces.user.exceptions import (
 )
 
 APPCONFIG = obtain_config()
+DEFAULT_PAGE_SIZE = 10
+DEFAULT_PAGE_NUMBER = 1
 
 
 def _add_user_to_database(user_args: dict) -> User:
@@ -53,6 +56,47 @@ def _create_keycloak_client() -> orodha_keycloak.OrodhaKeycloakClient:
         client_id=APPCONFIG["keycloak_config"]["keycloak_client_id"],
         client_secret_key=APPCONFIG["keycloak_config"]["keycloak_client_secret_key"],
     )
+
+
+def get_bulk_users(token: str, payload: dict) -> list:
+    """
+    Function that takes a JWT and optional filters, then returns truncated user data.
+
+    Args:
+        token(str): A JWT token provided by keycloak.
+        payload(dict): The post payload containing filter data and user data
+
+    Raises:
+        OrodhaForbidenError: If the JWT token is not valid or is missing.
+
+    Returns:
+        response_data(list[UserDocument]): A list of matching user documents that have been trimmed
+            to the id and username values only.
+    """
+    keycloak_client = _create_keycloak_client()
+
+    try:
+        keycloak_client.get_user(token=token).get("id")
+    except KeycloakGetError:
+        raise OrodhaForbiddenError(
+            message="You don't have the required token to access this resource."
+        )
+
+    page_size = int(payload.get("pageSize", DEFAULT_PAGE_SIZE))
+    page_number = int(payload.get("pageNumber", DEFAULT_PAGE_NUMBER))
+
+    if page_number == 1:
+        offset = 0
+    else:
+        offset = (page_size * page_number) - page_size
+
+    bulk_user_pipeline = pipelines.obtain_bulk_user_pipeline(
+        page_size=page_size,
+        offset=offset,
+        targets=payload.get("targets")
+    )
+    response_data = User.objects().aggregate(bulk_user_pipeline)
+    return list(response_data)
 
 
 def get_user(token: str, request_user_mongo_id: str) -> User:

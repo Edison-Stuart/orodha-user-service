@@ -3,6 +3,8 @@
 import uuid
 
 TEST_KEYCLOAK_USER_ID = uuid.uuid4()
+TEST_USERNAME_ONE = "someuser"
+TEST_USERNAME_TWO = "oneuser"
 
 """
 Mock token values to be added as headers in certain requests.
@@ -45,23 +47,37 @@ KEYCLOAK_DELETE_USER_RESPONSE = {}
 
 MOCK_MONGO_USER_INPUT = {
     "email": "someemail@mail.com",
-    "username": "someuser",
+    "username": TEST_USERNAME_ONE,
     "firstName": "some",
     "lastName": "user",
     "keycloak_id": str(TEST_KEYCLOAK_USER_ID),
+}
+
+MOCK_MONGO_USER_INPUT_TWO = {
+    "email": "someemail@mail.com",
+    "username": TEST_USERNAME_TWO,
+    "firstName": "one",
+    "lastName": "user",
+    "keycloak_id": f"{str(TEST_KEYCLOAK_USER_ID)}80085",
 }
 
 GET_USER_ROUTE_RESPONSE = {
     "email": "someemail@mail.com",
-    "username": "someuser",
+    "username": TEST_USERNAME_ONE,
     "firstName": "some",
     "lastName": "user",
     "keycloak_id": str(TEST_KEYCLOAK_USER_ID),
 }
 
+BULK_GET_USER_REQUEST = {
+    "pageSize": 10,
+    "pageNumber": 1,
+    "targets": [TEST_USERNAME_ONE, TEST_USERNAME_TWO]
+    }
+
 POST_USER_REQUEST = {
     "email": "someemail@mail.com",
-    "username": "someuser",
+    "username": TEST_USERNAME_ONE,
     "firstName": "some",
     "lastName": "user",
     "password": "somepassword",
@@ -69,7 +85,7 @@ POST_USER_REQUEST = {
 
 POST_USER_ROUTE_RESPONSE = {
     "email": "someemail@mail.com",
-    "username": "someuser",
+    "username": TEST_USERNAME_ONE,
     "firstName": "some",
     "lastName": "user",
     "keycloak_id": str(TEST_KEYCLOAK_USER_ID),

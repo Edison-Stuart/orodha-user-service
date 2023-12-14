@@ -4,10 +4,13 @@ from .fixtures import (
     POST_USER_REQUEST,
     POST_USER_REQUEST_INVALID,
     POST_USER_ROUTE_RESPONSE,
+    BULK_GET_USER_REQUEST,
     KEYCLOAK_FAIL_TOKEN,
     MONGO_DOES_NOT_EXIST_TOKEN,
     KEYCLOAK_DOES_NOT_EXIST_TOKEN,
-    MONGO_VALIDATION_ERROR_TOKEN
+    MONGO_VALIDATION_ERROR_TOKEN,
+    TEST_USERNAME_ONE,
+    TEST_USERNAME_TWO,
 )
 from http import HTTPStatus
 from copy import deepcopy
@@ -60,6 +63,35 @@ def test_get(mock_service_env, mock_user_object, mock_app_client, mock_create_ke
     )
     assert response_get.json == expected
     assert response_get.status_code == HTTPStatus.OK
+
+
+def test_bulk_get(mock_service_env, mock_app_client, mock_create_keycloak_connection, mock_user_object_two):
+    """
+    Test function which calls the user bulk get endpoint.
+
+    Args:
+        mock_service_env: A fixture function which loads the service environment with
+            variables from fixture data.
+        mock_app_client: An instance of our Flask app which has been loaded with a MongoMock
+            connection.
+        mock_create_keycloak_connection: Fixture function which returns to us a mocked
+            version of the oroha-keycloak package fpr testing purposes.
+    """
+    response_get_all = mock_app_client.post(
+        f"{USER_ROUTE}/get-bulk-users", json=BULK_GET_USER_REQUEST
+    )
+    usernames = [
+        TEST_USERNAME_ONE,
+        TEST_USERNAME_TWO
+    ]
+    assert response_get_all.status_code == HTTPStatus.OK
+    assert isinstance(response_get_all.json, list)
+    assert isinstance(response_get_all.json[0], dict)
+    assert response_get_all.json[0]["username"] in usernames
+    assert len(response_get_all.json[0]) == 3
+    assert "_id" in response_get_all.json[0]
+    assert "keycloak_id" in response_get_all.json[0]
+    assert "username" in response_get_all.json[0]
 
 
 def test_post(mock_service_env, mock_app_client, mock_create_keycloak_connection):

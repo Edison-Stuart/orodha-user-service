@@ -25,20 +25,26 @@ In order to use this repository there are some conditions that have to be met. Y
 
 ### API
 
-There are three `/users` routes as well as one `/main` route.
+There are four `/users` routes as well as one `/main` route.
 
 The `/users` routes are the main purpose of this service, this url supports GET, DELETE, and POST requests at the current
 moment.
 
-For the GET and DELETE requests a user_id needs to be passed into the route like so:
+For GET and DELETE requests you can pass a user_id into the route like so:
 
 ```
 /users/<string:user_id>/
 ```
 
-Without a user_id these routes will not accept the request.
+GET will return a specific user if you have access
+DELETE will remove a user from keycloak and mongoDB.
 
-The POST request does not expect and id in the route, just a form body like a typical POST request.
+Without a user_id, the DELETE route will not accept the request.
+
+A GET request without a user_id value will return a list of all users containing
+only the id, keycloak_id, and username of each user.
+
+The POST request does not expect an id in the route, just a form body like a typical POST request.
 
 These routes also expect the headers of
 

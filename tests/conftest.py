@@ -14,7 +14,8 @@ from .fixtures import (
     MONGO_DOES_NOT_EXIST_TOKEN,
     KEYCLOAK_BAD_ID_GET_USER_RESPONSE,
     KEYCLOAK_DOES_NOT_EXIST_TOKEN,
-    MONGO_VALIDATION_ERROR_TOKEN
+    MONGO_VALIDATION_ERROR_TOKEN,
+    MOCK_MONGO_USER_INPUT_TWO
 )
 from mongoengine import DoesNotExist, ValidationError, connect
 import mongomock
@@ -31,6 +32,12 @@ def mock_app_client():
 @pytest.fixture
 def mock_user_object():
     mock_user = User(**MOCK_MONGO_USER_INPUT)
+    mock_user.save()
+    yield mock_user
+
+@pytest.fixture
+def mock_user_object_two():
+    mock_user = User(**MOCK_MONGO_USER_INPUT_TWO)
     mock_user.save()
     yield mock_user
 
