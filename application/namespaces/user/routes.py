@@ -39,8 +39,8 @@ user_response_model = user_ns.model(
 bulk_request_model = user_ns.model(
     "Bulk Request",
     {
-        "page_size": fields.Integer(required=False),
-        "page_number": fields.Integer(required=False),
+        "pageSize": fields.Integer(required=False),
+        "pageNumber": fields.Integer(required=False),
         "targets": fields.List(fields.String(), required=False)
     }
 )

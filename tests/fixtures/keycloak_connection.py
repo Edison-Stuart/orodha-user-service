@@ -70,8 +70,8 @@ GET_USER_ROUTE_RESPONSE = {
 }
 
 BULK_GET_USER_REQUEST = {
-    "page_size": 10,
-    "page_number": 1,
+    "pageSize": 10,
+    "pageNumber": 1,
     "targets": [TEST_USERNAME_ONE, TEST_USERNAME_TWO]
     }
 

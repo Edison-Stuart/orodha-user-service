@@ -82,13 +82,10 @@ def get_bulk_users(token: str, payload: dict) -> list:
             message="You don't have the required token to access this resource."
         )
 
-    page_size = payload.get("page_size")
-    page_number = payload.get("page_number")
+    page_size = int(payload.get("pageSize", DEFAULT_PAGE_SIZE))
+    page_number = int(payload.get("pageNumber", DEFAULT_PAGE_NUMBER))
 
-    if page_size is None:
-        page_size = DEFAULT_PAGE_SIZE
-    if page_number is None or page_number == 1:
-        page_number = DEFAULT_PAGE_NUMBER
+    if page_number == 1:
         offset = 0
     else:
         offset = (page_size * page_number) - page_size
